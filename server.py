@@ -8,7 +8,7 @@ print(f'{len(msg):<10}' + msg)
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(("192.168.1.110", 6969))
+s.bind(("192.168.1.180", 6969))
 
 s.listen(5)
 
