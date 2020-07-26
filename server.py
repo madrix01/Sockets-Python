@@ -1,23 +1,35 @@
-import socket
-import time
 
-HEADERSIZE = 10
+import asyncio
+from aiohttp import web
+import socketio
+from json import dumps
 
-msg = "Welcome to the header"
-print(f'{len(msg):<10}' + msg)
+sio = socketio.AsyncServer(async_mode='aiohttp')
+app = web.Application()
+sio.attach(app)
+
+@sio.event
+async def join_chat(sid,message):
+    print(message.get('name', sid) + ' joined to {}'.format(message['room']))
+    sio.enter_room(sid, message['room'])
+
+@sio.event
+async def exit_chat(sid,message):
+    sio.leave_room(sid, message['room'])
+
+@sio.event
+async def send_chat_room(sid, message):
+    await sio.emit('get_message', {'message': message['message'], 'from': message['name']}, room=message['room'])
+
+@sio.event
+async def connect(sid, environ):
+    await sio.emit('my_response', {'data': 'Connected', 'count': 0}, room=sid)
 
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(("192.168.1.180", 6969))
+@sio.event
+def disconnect(sid):
+    print('Client disconnected')
 
-s.listen(5)
 
-
-while True:
-    clientSocket, adress = s.accept()
-    print(f"Connected {adress}")
-
-    while True:
-        msg = input("> ")
-        msg = f'{len(msg):<{HEADERSIZE}}' + msg
-        clientSocket.send(bytes(msg, "utf-8"))
+if __name__ == '__main__':
+    web.run_app(app)

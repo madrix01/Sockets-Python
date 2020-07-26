@@ -1,28 +1,66 @@
-import socket
+from socketio import AsyncClient
+import asyncio
+from json import dumps
+from aioconsole import ainput
+from colorama import Fore, Back, Style 
+from os import system, name
 
-HEADERSIZE = 10
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(("192.168.1.180", 6969))
+def clear(): 
+    if name == 'nt': 
+        _ = system('cls')
+        print(Fore.WHITE)
+    else: 
+        _ = system('clear')
+        print(Fore.WHITE)
 
-print(socket.gethostname())
-while True:
 
-    full_msg = ""
-    new_msg = True
+if __name__ == '__main__':
+    clear()
+    #severInfo = input("Server Adress > ")
+    #IpAddress = severInfo[:-5]
+    #PORT = severInfo[-4:]
+    IpAddress = "192.168.1.110"
+    PORT = "8080"
+    clientName = input("Username > ")
+    #roomName = input("Room Name > ")
+    roomName = "marvel"
+    messageToSend = ''
 
-    while True:
-        msg = s.recv(16) #message recieved
+    sio = AsyncClient()
+    FullIp = 'http://'+IpAddress+':'+PORT
 
-        if new_msg:
-            #print(f"New message {msg[:HEADERSIZE]}")
-            msglen = int(msg[:HEADERSIZE])
-            new_msg = False
-        full_msg += msg.decode("utf-8")
+    @sio.event
+    async def connect():
+        print('Connected to sever')
+        await sio.emit('join_chat', {'room': roomName,'name': clientName})
+    
+    @sio.event
+    async def get_message(message):
+        if clientName != message['from']:
+            print(Fore.CYAN + message['from']+' : '+message['message'] + Fore.GREEN)
 
-        if len(full_msg) - HEADERSIZE == msglen:
-            print(f"Message from server > {full_msg[HEADERSIZE:]}")
-            new_msg = True
-            full_msg = ""
-    print(full_msg)
 
- 
+    async def send_message():
+        while True:
+            await asyncio.sleep(0.01)
+            messageToSend = await ainput(Fore.GREEN)
+            if messageToSend == ":q":
+                Fore.WHITE
+                exit()
+            elif messageToSend == ":c":
+                clear()
+            if messageToSend != "":
+                await sio.emit('send_chat_room', {'message': messageToSend,'name': clientName, 'room': roomName})
+
+    async def connectToServer():
+        await sio.connect(FullIp)
+        await sio.wait()
+
+    async def main(IpAddress):
+        await asyncio.gather(
+        connectToServer(),
+        send_message()
+        )
+    
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main(FullIp))
