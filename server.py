@@ -10,9 +10,13 @@ sio.attach(app)
 
 @sio.event
 async def join_chat(sid,message):
-    print(message.get('name', sid) + ' joined to {}'.format(message['room']))
-    sio.enter_room(sid, message['room'])
-
+    print(message.get('name', sid) + ' want to join to {}'.format(message['room']))
+    io = input("> ")
+    if io == "a":
+        print(message.get('name', sid) + ' joined to {}'.format(message['room']))
+        await asyncio.sleep(0.01)
+        await sio.emit('join_chat', {'data':'what ever you are trying to send'},  broadcast=True)
+        sio.enter_room(sid, message['room'])
 @sio.event
 async def exit_chat(sid,message):
     sio.leave_room(sid, message['room'])
